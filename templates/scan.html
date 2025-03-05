@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escanear QR</title>
+    <script src="https://cdn.jsdelivr.net/npm/instascan@1.0.0/instascan.min.js"></script>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-hover: #4338CA;
+            --background: #F3F4F6;
+            --text-color: #1F2937;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--text-color);
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 1.5rem;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #preview {
+            width: 100%;
+            display: block;
+            border-radius: 0.5rem;
+            background-color: #000;
+        }
+
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid var(--primary-color);
+            border-radius: 0.5rem;
+            pointer-events: none;
+        }
+
+        .scanner-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary-color);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+        }
+
+        .status-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: var(--background);
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .back-button {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            margin-top: 1.5rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .back-button:hover {
+            background: var(--primary-hover);
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Escanear QR</h1>
+        
+        <div class="video-container">
+            <video id="preview"></video>
+            <div class="scanner-overlay">
+                <div class="scanner-line"></div>
+            </div>
+        </div>
+
+        <div id="status-message" class="status-message">
+            Escaneando... Por favor, muestre el código QR a la cámara.
+        </div>
+
+        <form id="qr-form" action="/" method="GET">
+            <input type="hidden" name="qr_code" id="qr_code">
+            <button type="submit">Crear Usuario</button>
+        </form>
+
+        <a href="/" class="back-button">Volver al Inicio</a>
+    </div>
+
+    <script>
+        async function startScanner() {
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.classList.add('show');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+
+                scanner.addListener('scan', function (content) {
+                    document.getElementById('qr_code').value = content;
+                    statusMessage.textContent = '¡Código QR detectado! Registrando asistencia...';
+                    statusMessage.style.backgroundColor = '#DEF7EC';
+                    statusMessage.style.color = '#03543F';
+                    document.getElementById('qr-form').submit();
+                });
+
+                const cameras = await Instascan.Camera.getCameras();
+
+                if (cameras.length > 0) {
+                    scanner.start(cameras[0]);
+                } else {
+                    statusMessage.textContent = 'No se encontró ninguna cámara';
+                    statusMessage.style.backgroundColor = '#FDE8E8';
+                    statusMessage.style.color = '#9B1C1C';
+                }
+
+            } catch (error) {
+                console.error('No se pudo acceder a la cámara:', error);
+                statusMessage.textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+                statusMessage.style.backgroundColor = '#FDE8E8';
+                statusMessage.style.color = '#9B1C1C';
+            }
+        }
+
+        startScanner();
+    </script>
+</body>
+</html>
