@@ -159,9 +159,9 @@
             Escaneando... Por favor, muestre el código QR a la cámara.
         </div>
 
-        <form id="qr-form" action="/" method="GET">
+        <form id="qr-form" action="{{ url_for('scan_qr') }}" method="POST">
             <input type="hidden" name="qr_code" id="qr_code">
-            <button type="submit">Crear Usuario</button>
+            <button type="submit">Registrar Asistencia</button>
         </form>
 
         <a href="/" class="back-button">Volver al Inicio</a>
@@ -179,21 +179,24 @@
                 scanner.addListener('scan', function (content) {
                     document.getElementById('qr_code').value = content;
                     statusMessage.textContent = '¡Código QR detectado! Registrando asistencia...';
-                    statusMessage.style.backgroundColor = '#DEF7EC';
-                    statusMessage.style.color = '#03543F';
                     document.getElementById('qr-form').submit();
                 });
 
-                const cameras = await Instascan.Camera.getCameras();
-
-                if (cameras.length > 0) {
-                    scanner.start(cameras[0]);
-                } else {
-                    statusMessage.textContent = 'No se encontró ninguna cámara';
+                Instascan.Camera.getCameras().then(function (cameras) {
+                    if (cameras.length > 0) {
+                        scanner.start(cameras[0]);
+                    } else {
+                        console.error('No se encontraron cámaras.');
+                        statusMessage.textContent = 'No se encontraron cámaras.';
+                        statusMessage.style.backgroundColor = '#FDE8E8';
+                        statusMessage.style.color = '#9B1C1C';
+                    }
+                }).catch(function (e) {
+                    console.error(e);
+                    statusMessage.textContent = 'Error al acceder a la cámara.';
                     statusMessage.style.backgroundColor = '#FDE8E8';
                     statusMessage.style.color = '#9B1C1C';
-                }
-
+                });
             } catch (error) {
                 console.error('No se pudo acceder a la cámara:', error);
                 statusMessage.textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';

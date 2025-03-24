@@ -115,11 +115,43 @@
                 margin-bottom: 1.5rem;
             }
         }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            color: white;
+            text-decoration: none;
+        }
+
+        .edit-btn {
+            background-color: #4CAF50;
+        }
+
+        .delete-btn {
+            background-color: #f44336;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Registros de Asistencia</h1>
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
         <div class="table-container">
             <table>
                 <thead>
@@ -127,14 +159,21 @@
                         <th>Fecha y Hora</th>
                         <th>Nombre</th>
                         <th>Apellido</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for record in records %}
                     <tr>
-                        <td>{{ record[0] }}</td>
                         <td>{{ record[1] }}</td>
                         <td>{{ record[2] }}</td>
+                        <td>{{ record[3] }}</td>
+                        <td class="actions">
+                            <a href="{{ url_for('edit_record', id=record[0]) }}" class="edit-btn">Editar</a>
+                            <form method="POST" action="{{ url_for('delete_record', id=record[0]) }}" style="display: inline;">
+                                <button type="submit" class="delete-btn" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?')">Eliminar</button>
+                            </form>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
