@@ -22,9 +22,7 @@ app = Flask(__name__)
 def init_db():
     conn = sqlite3.connect('attendance.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS qr_creation
-                 (timestamp TEXT, name TEXT, surname TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS qr_scan
+    c.execute('''CREATE TABLE IF NOT EXISTS attendance
                  (timestamp TEXT, name TEXT, surname TEXT)''')
     conn.commit()
     conn.close()
@@ -61,7 +59,7 @@ def generate_qr():
             conn = sqlite3.connect('attendance.db')
             c = conn.cursor()
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            c.execute("INSERT INTO qr_creation (timestamp, name, surname) VALUES (?, ?, ?)", 
+            c.execute("INSERT INTO attendance (timestamp, name, surname) VALUES (?, ?, ?)", 
                     (timestamp, name, surname))
             conn.commit()
             return render_template('index.html', qr_code=filename)
@@ -89,7 +87,7 @@ def scan_qr():
                 conn = sqlite3.connect('attendance.db')
                 c = conn.cursor()
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                c.execute("INSERT INTO qr_scan (timestamp, name, surname) VALUES (?, ?, ?)", 
+                c.execute("INSERT INTO attendance (timestamp, name, surname) VALUES (?, ?, ?)", 
                         (timestamp, name, surname))
                 conn.commit()
                 return redirect(url_for('index'))
@@ -103,30 +101,21 @@ def scan_qr():
 
     return render_template('scan.html')
 
-@app.route('/creation_records')
-def creation_records():
+@app.route('/records')
+def records():
     conn = sqlite3.connect('attendance.db')
     c = conn.cursor()
-    c.execute("SELECT rowid, * FROM qr_creation")
+    c.execute("SELECT rowid, * FROM attendance")
     records = c.fetchall()
     conn.close()
-    return render_template('creation_records.html', records=records)
-
-@app.route('/scan_records')
-def scan_records():
-    conn = sqlite3.connect('attendance.db')
-    c = conn.cursor()
-    c.execute("SELECT rowid, * FROM qr_scan")
-    records = c.fetchall()
-    conn.close()
-    return render_template('scan_records.html', records=records)
+    return render_template('records.html', records=records)
 
 @app.route('/delete/<int:id>', methods=['POST'])
 def delete_record(id):
     try:
         conn = sqlite3.connect('attendance.db')
         c = conn.cursor()
-        c.execute("DELETE FROM qr_creation WHERE rowid = ?", (id,))
+        c.execute("DELETE FROM attendance WHERE rowid = ?", (id,))
         conn.commit()
         conn.close()
         return redirect(url_for('records'))
@@ -147,7 +136,7 @@ def edit_record(id):
             conn = sqlite3.connect('attendance.db')
             c = conn.cursor()
             c.execute("""
-                UPDATE qr_creation 
+                UPDATE attendance 
                 SET name = ?, surname = ?, timestamp = ?
                 WHERE rowid = ?
             """, (name, surname, timestamp, id))
@@ -159,7 +148,7 @@ def edit_record(id):
     else:
         conn = sqlite3.connect('attendance.db')
         c = conn.cursor()
-        c.execute("SELECT * FROM qr_creation WHERE rowid = ?", (id,))
+        c.execute("SELECT * FROM attendance WHERE rowid = ?", (id,))
         record = c.fetchone()
         conn.close()
         return render_template('edit.html', record=record)
