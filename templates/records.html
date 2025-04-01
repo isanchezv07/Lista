@@ -37,7 +37,7 @@
             border-radius: 1rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             width: 100%;
-            max-width: 800px;
+            max-width: 1200px;
         }
 
         h1 {
@@ -45,6 +45,14 @@
             font-size: 2rem;
             margin-bottom: 2rem;
             text-align: center;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .table-container {
@@ -59,6 +67,7 @@
             border-collapse: collapse;
             text-align: left;
             font-size: 0.875rem;
+            margin-bottom: 2rem;
         }
 
         th {
@@ -114,6 +123,10 @@
                 font-size: 1.5rem;
                 margin-bottom: 1.5rem;
             }
+
+            .section-title {
+                font-size: 1.25rem;
+            }
         }
 
         .actions {
@@ -142,6 +155,68 @@
             color: red;
             margin-bottom: 10px;
         }
+
+        .qr-code {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .qr-code:hover {
+            transform: scale(1.05);
+        }
+
+        .qr-cell {
+            text-align: center;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+        }
+
+        .modal-qr {
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: var(--primary-color);
+        }
     </style>
 </head>
 <body>
@@ -152,6 +227,45 @@
         <div class="error">{{ error }}</div>
         {% endif %}
 
+        <h2 class="section-title">Registros Creados</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Código QR</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in generation_records %}
+                    <tr>
+                        <td>{{ record[1] }}</td>
+                        <td>{{ record[2] }}</td>
+                        <td>{{ record[3] }}</td>
+                        <td class="qr-cell">
+                            <img src="{{ url_for('static', filename='qr_codes/' + record[2].lower() + '_' + record[3].lower() + '_qr.png') }}" 
+                                 alt="QR Code" 
+                                 class="qr-code"
+                                 onclick="showQRModal(this.src)"
+                                 onerror="this.style.display='none'">
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('edit_record', id=record[0], table='generation_records') }}" class="edit-btn">Editar</a>
+                            <form method="POST" action="{{ url_for('delete_record', id=record[0]) }}" style="display: inline;">
+                                <input type="hidden" name="table" value="generation_records">
+                                <button type="submit" class="delete-btn" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?')">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="section-title">Registros Escaneados</h2>
         <div class="table-container">
             <table>
                 <thead>
@@ -163,14 +277,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for record in records %}
+                    {% for record in scanning_records %}
                     <tr>
                         <td>{{ record[1] }}</td>
                         <td>{{ record[2] }}</td>
                         <td>{{ record[3] }}</td>
                         <td class="actions">
-                            <a href="{{ url_for('edit_record', id=record[0]) }}" class="edit-btn">Editar</a>
+                            <a href="{{ url_for('edit_record', id=record[0], table='scanning_records') }}" class="edit-btn">Editar</a>
                             <form method="POST" action="{{ url_for('delete_record', id=record[0]) }}" style="display: inline;">
+                                <input type="hidden" name="table" value="scanning_records">
                                 <button type="submit" class="delete-btn" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?')">Eliminar</button>
                             </form>
                         </td>
@@ -181,5 +296,43 @@
         </div>
         <a href="/" class="back-button">Volver al Inicio</a>
     </div>
+
+    <!-- Modal -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeQRModal()">&times;</button>
+            <img id="modalQR" class="modal-qr" src="" alt="QR Code">
+        </div>
+    </div>
+
+    <script>
+        function showQRModal(src) {
+            const modal = document.getElementById('qrModal');
+            const modalQR = document.getElementById('modalQR');
+            modalQR.src = src;
+            modal.style.display = 'flex';
+        }
+
+        function closeQRModal() {
+            const modal = document.getElementById('qrModal');
+            modal.style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('qrModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('qrModal');
+                modal.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
